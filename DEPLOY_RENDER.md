@@ -46,8 +46,8 @@ Name: firebird-api
 Environment: Python 3
 Region: Oregon (US West) # ou mais próximo do seu banco
 Branch: main
-Build Command: pip install -r requirements.txt
-Start Command: gunicorn main:app -c gunicorn.conf.py
+Build Command: pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
+Start Command: gunicorn main_with_fallback:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
 ```
 
 ### **3. Configurar Variáveis de Ambiente**

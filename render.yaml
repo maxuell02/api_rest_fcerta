@@ -3,8 +3,10 @@ services:
     name: firebird-api
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn main:app -c gunicorn.conf.py
+    buildCommand: |
+      pip install --upgrade pip
+      pip install --no-cache-dir -r requirements.txt
+    startCommand: gunicorn main_with_fallback:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
     envVars:
       - key: DATABASE_PATH
         value: D:\sistemas\fcerta\DB\ALTERDB.ib
@@ -18,5 +20,5 @@ services:
         value: 3050
       - key: DATABASE_CHARSET
         value: WIN1252
-      - key: PORT
-        value: 10000
+      - key: PYTHON_VERSION
+        value: 3.11.5
