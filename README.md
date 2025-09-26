@@ -60,9 +60,30 @@ A API estará disponível em `http://localhost:8000`
 
 ## Deploy no Render
 
-1. Conecte seu repositório GitHub ao Render
-2. Configure as variáveis de ambiente no painel do Render
-3. O deploy será automático usando o arquivo `render.yaml`
+### 🚀 Deploy Rápido
+```bash
+# Windows
+deploy.bat
+
+# Linux/Mac
+chmod +x deploy.sh
+./deploy.sh
+```
+
+### 📋 Passo a Passo Completo
+1. **Criar repositório GitHub** com este código
+2. **Acessar [Render.com](https://render.com)** e criar conta
+3. **Criar Web Service** conectando o repositório
+4. **Configurar variáveis** de ambiente (ver DEPLOY_RENDER.md)
+5. **Aguardar build** completar (~3-5 minutos)
+
+### 🔧 Configuração Automática
+- ✅ `render.yaml` já configurado
+- ✅ `gunicorn.conf.py` para produção
+- ✅ Variáveis de ambiente definidas
+- ✅ Health check implementado
+
+📚 **Guia detalhado:** [DEPLOY_RENDER.md](DEPLOY_RENDER.md)
 
 ## Documentação Interativa
 
