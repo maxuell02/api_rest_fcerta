@@ -21,31 +21,37 @@ def try_fastapi():
         import uvicorn
         log(f"✅ FastAPI {fastapi.__version__} disponível")
         
-        # Tenta importar nossa aplicação
-        try:
-            from main_with_fallback import app
-            log("✅ main_with_fallback importado com sucesso")
-            
-            port = int(os.environ.get('PORT', 8000))
-            log(f"🌐 Iniciando FastAPI na porta {port}")
-            
-            uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
-            return True
-            
-        except ImportError as e:
-            log(f"❌ Erro ao importar main_with_fallback: {e}")
-            
+        # Lista de aplicações para tentar
+        apps_to_try = [
+            ('main_simple_fallback', 'Versão simples com fallback'),
+            ('main_with_fallback', 'Versão com fallback'),
+            ('main', 'Versão principal')
+        ]
+        
+        for module_name, description in apps_to_try:
             try:
-                from main import app
-                log("✅ main importado como fallback")
+                log(f"🧪 Tentando importar {description}...")
+                
+                # Import dinâmico para evitar erros de dependência
+                module = __import__(module_name)
+                app = getattr(module, 'app')
+                
+                log(f"✅ {description} importado com sucesso")
                 
                 port = int(os.environ.get('PORT', 8000))
+                log(f"🌐 Iniciando FastAPI na porta {port}")
+                
                 uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
                 return True
                 
-            except ImportError as e2:
-                log(f"❌ Erro ao importar main: {e2}")
-                return False
+            except ImportError as e:
+                log(f"❌ {description} falhou: {e}")
+                continue
+            except Exception as e:
+                log(f"❌ Erro inesperado com {description}: {e}")
+                continue
+        
+        return False
                 
     except ImportError as e:
         log(f"❌ FastAPI não disponível: {e}")

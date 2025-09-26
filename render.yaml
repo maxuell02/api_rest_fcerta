@@ -4,9 +4,11 @@ services:
     env: python
     plan: free
     buildCommand: |
-      echo "🔧 Instalando dependências..."
+      echo "🔧 Instalando dependências básicas..."
       pip install --upgrade pip
-      pip install --no-cache-dir -r requirements.txt || echo "⚠️ Algumas dependências falharam, continuando..."
+      pip install --no-cache-dir -r requirements.txt
+      echo "🔥 Tentando instalar FDB (opcional)..."
+      pip install --no-cache-dir fdb || echo "⚠️ FDB não disponível, usando fallback"
     startCommand: python start.py
     envVars:
       - key: DATABASE_PATH
