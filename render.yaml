@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: firebird-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: DATABASE_PATH
+        value: D:\sistemas\fcerta\DB\ALTERDB.ib
+      - key: DATABASE_HOST
+        value: 25.90.252.41
+      - key: DATABASE_USERNAME
+        value: SYSDBA
+      - key: DATABASE_PASSWORD
+        value: masterkey
+      - key: DATABASE_PORT
+        value: 3050

@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste da API Firebird</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #4facfe;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        textarea {
+            height: 120px;
+            resize: vertical;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .response {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .response.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .response.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background: #28a745;
+        }
+
+        .status-offline {
+            background: #dc3545;
+        }
+
+        .table-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background: white;
+        }
+
+        .table-item {
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .table-item:hover {
+            background: #e9ecef;
+        }
+
+        .table-item.selected {
+            background: #4facfe;
+            color: white;
+        }
+
+        .columns-container {
+            margin-bottom: 15px;
+        }
+
+        .columns-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background: white;
+        }
+
+        .column-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-radius: 4px;
+            background: #f8f9fa;
+            transition: background 0.2s;
+        }
+
+        .column-item:hover {
+            background: #e9ecef;
+        }
+
+        .column-item input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+        }
+
+        .column-info {
+            font-size: 12px;
+            color: #666;
+            margin-left: auto;
+        }
+
+        .where-condition {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f8f9fa;
+        }
+
+        .where-condition select,
+        .where-condition input {
+            flex: 1;
+            margin: 0;
+        }
+
+        .where-condition button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .where-condition button:hover {
+            background: #c82333;
+        }
+
+        .logic-operator {
+            background: #6c757d;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin: 5px 0;
+        }
+
+        .tables-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .tables-container select {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .selected-tables {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background: white;
+            min-height: 60px;
+        }
+
+        .table-item-selected {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #4facfe;
+            border-radius: 5px;
+            background: #f8f9ff;
+        }
+
+        .table-item-selected:last-child {
+            margin-bottom: 0;
+        }
+
+        .table-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .table-name {
+            font-weight: bold;
+            color: #4facfe;
+        }
+
+        .table-alias {
+            font-size: 12px;
+            color: #666;
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .join-config {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+        }
+
+        .join-config select,
+        .join-config input {
+            width: auto;
+            min-width: 100px;
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+
+        .remove-table-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .remove-table-btn:hover {
+            background: #c82333;
+        }
+
+        .join-indicator {
+            background: #28a745;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔥 Teste da API Firebird</h1>
+            <p>Interface para testar todos os endpoints da API REST</p>
+            <div style="margin-top: 15px;">
+                <span id="status-indicator" class="status-indicator status-offline"></span>
+                <span id="status-text">Verificando conexão...</span>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Configuração da API -->
+            <div class="section">
+                <h2>⚙️ Configuração</h2>
+                <div class="form-group">
+                    <label for="apiUrl">URL da API:</label>
+                    <input type="text" id="apiUrl" value="http://localhost:8000" placeholder="http://localhost:8000">
+                </div>
+                <button class="btn" onclick="checkHealth()">🔍 Verificar Conexão</button>
+            </div>
+
+            <!-- Listar Tabelas -->
+            <div class="section">
+                <h2>📋 Tabelas do Banco</h2>
+                <button class="btn" onclick="getTables()">📊 Listar Tabelas</button>
+                <div id="tables-response" class="response" style="display: none;"></div>
+                <div id="tables-list" class="table-list" style="display: none; margin-top: 15px;"></div>
+            </div>
+
+            <div class="grid">
+                <!-- Consultar Dados -->
+                <div class="section">
+                    <h2>🔍 Consultar Dados</h2>
+                    <div class="form-group">
+                        <label for="queryTable">Nome da Tabela:</label>
+                        <input type="text" id="queryTable" placeholder="Ex: USUARIOS">
+                    </div>
+                    <div class="form-group">
+                        <label for="queryLimit">Limite (opcional):</label>
+                        <input type="number" id="queryLimit" placeholder="Ex: 10">
+                    </div>
+                    <div class="form-group">
+                        <label for="queryOffset">Offset (opcional):</label>
+                        <input type="number" id="queryOffset" placeholder="Ex: 0">
+                    </div>
+                    <button class="btn" onclick="getTableData()">🔍 Consultar</button>
+                    <button class="btn" onclick="getTableSchema()">📋 Ver Schema</button>
+                    <div id="query-response" class="response" style="display: none;"></div>
+                </div>
+
+                <!-- Inserir Dados -->
+                <div class="section">
+                    <h2>➕ Inserir Dados</h2>
+                    <div class="form-group">
+                        <label for="insertTable">Nome da Tabela:</label>
+                        <input type="text" id="insertTable" placeholder="Ex: USUARIOS">
+                    </div>
+                    <div class="form-group">
+                        <label for="insertData">Dados (JSON):</label>
+                        <textarea id="insertData" placeholder='{"nome": "João", "email": "joao@email.com"}'></textarea>
+                    </div>
+                    <button class="btn" onclick="insertData()">➕ Inserir</button>
+                    <div id="insert-response" class="response" style="display: none;"></div>
+                </div>
+            </div>
+
+            <div class="grid">
+                <!-- Atualizar Dados -->
+                <div class="section">
+                    <h2>✏️ Atualizar Dados</h2>
+                    <div class="form-group">
+                        <label for="updateTable">Nome da Tabela:</label>
+                        <input type="text" id="updateTable" placeholder="Ex: USUARIOS">
+                    </div>
+                    <div class="form-group">
+                        <label for="updateData">Novos Dados (JSON):</label>
+                        <textarea id="updateData" placeholder='{"nome": "João Silva"}'></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="updateWhere">Condição WHERE:</label>
+                        <input type="text" id="updateWhere" placeholder="Ex: id = ?">
+                    </div>
+                    <div class="form-group">
+                        <label for="updateParams">Parâmetros (JSON Array):</label>
+                        <input type="text" id="updateParams" placeholder="Ex: [1]">
+                    </div>
+                    <button class="btn" onclick="updateData()">✏️ Atualizar</button>
+                    <div id="update-response" class="response" style="display: none;"></div>
+                </div>
+
+                <!-- Deletar Dados -->
+                <div class="section">
+                    <h2>🗑️ Deletar Dados</h2>
+                    <div class="form-group">
+                        <label for="deleteTable">Nome da Tabela:</label>
+                        <input type="text" id="deleteTable" placeholder="Ex: USUARIOS">
+                    </div>
+                    <div class="form-group">
+                        <label for="deleteWhere">Condição WHERE:</label>
+                        <input type="text" id="deleteWhere" placeholder="Ex: id = ?">
+                    </div>
+                    <div class="form-group">
+                        <label for="deleteParams">Parâmetros (JSON Array):</label>
+                        <input type="text" id="deleteParams" placeholder="Ex: [1]">
+                    </div>
+                    <button class="btn btn-danger" onclick="deleteData()">🗑️ Deletar</button>
+                    <div id="delete-response" class="response" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- Construtor de Query Visual -->
+            <div class="section">
+                <h2>🔧 Construtor de Query Visual</h2>
+
+                <!-- Seleção de Tabelas -->
+                <div class="form-group">
+                    <label>Gerenciar Tabelas:</label>
+                    <div class="tables-container">
+                        <select id="availableTables">
+                            <option value="">-- Selecione uma tabela para adicionar --</option>
+                        </select>
+                        <button class="btn" onclick="addTableToQuery()">➕ Adicionar Tabela</button>
+                        <button class="btn" onclick="clearAllTables()">🗑️ Limpar Todas</button>
+                    </div>
+                    <div id="selectedTables" class="selected-tables"></div>
+                </div>
+
+                <!-- Seleção de Colunas -->
+                <div class="form-group" id="columnsSection" style="display: none;">
+                    <label>Selecionar Colunas:</label>
+                    <div class="columns-container">
+                        <button class="btn" onclick="selectAllColumns()">✅ Todas</button>
+                        <button class="btn" onclick="clearAllColumns()">❌ Limpar</button>
+                    </div>
+                    <div id="columnsList" class="columns-list"></div>
+                </div>
+
+                <!-- Condições WHERE -->
+                <div class="form-group" id="whereSection" style="display: none;">
+                    <label>Condições WHERE:</label>
+                    <div id="whereConditions"></div>
+                    <button class="btn" onclick="addWhereCondition()">➕ Adicionar Condição</button>
+                </div>
+
+                <!-- ORDER BY -->
+                <div class="form-group" id="orderSection" style="display: none;">
+                    <label for="orderByColumn">Ordenar por:</label>
+                    <select id="orderByColumn" onchange="updateQuery()">
+                        <option value="">-- Sem ordenação --</option>
+                    </select>
+                    <select id="orderDirection" onchange="updateQuery()">
+                        <option value="ASC">Crescente (ASC)</option>
+                        <option value="DESC">Decrescente (DESC)</option>
+                    </select>
+                </div>
+
+                <!-- LIMIT -->
+                <div class="form-group" id="limitSection" style="display: none;">
+                    <label for="queryLimit2">Limite de registros:</label>
+                    <input type="number" id="queryLimit2" placeholder="Ex: 100" onchange="updateQuery()">
+                </div>
+
+                <!-- Query Gerada -->
+                <div class="form-group" id="generatedQuerySection" style="display: none;">
+                    <label for="generatedQuery">Query Gerada:</label>
+                    <textarea id="generatedQuery" readonly></textarea>
+                    <button class="btn" onclick="validateQueryOnly()">✅ Validar</button>
+                    <button class="btn" onclick="copyQuery()">📋 Copiar</button>
+                    <button class="btn" onclick="executeGeneratedQuery()">🚀 Executar</button>
+                </div>
+
+                <div id="query-builder-response" class="response" style="display: none;"></div>
+            </div>
+
+            <!-- Query Customizada Manual -->
+            <div class="section">
+                <h2>📝 Query Customizada Manual</h2>
+                <div class="form-group">
+                    <label for="customQuery">Query SQL (apenas SELECT):</label>
+                    <textarea id="customQuery" placeholder="SELECT * FROM USUARIOS WHERE nome LIKE '%João%'"></textarea>
+                </div>
+                <button class="btn" onclick="executeCustomQuery()">🚀 Executar</button>
+                <div id="custom-response" class="response" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = () => document.getElementById('apiUrl').value;
+
+        // Função para fazer requisições
+        async function makeRequest(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE()}${endpoint}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || `Erro ${response.status}`);
+                }
+
+                return { success: true, data };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        // Função para exibir resposta
+        function showResponse(elementId, result) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+
+            if (result.success) {
+                element.className = 'response success';
+                element.textContent = JSON.stringify(result.data, null, 2);
+            } else {
+                element.className = 'response error';
+                element.textContent = `Erro: ${result.error}`;
+            }
+        }
+
+        // Verificar saúde da API
+        async function checkHealth() {
+            const result = await makeRequest('/health');
+
+            const indicator = document.getElementById('status-indicator');
+            const text = document.getElementById('status-text');
+
+            if (result.success) {
+                indicator.className = 'status-indicator status-online';
+                text.textContent = 'API Online - Banco Conectado';
+            } else {
+                indicator.className = 'status-indicator status-offline';
+                text.textContent = `API Offline - ${result.error}`;
+            }
+        }
+
+        // Listar tabelas
+        async function getTables() {
+            const result = await makeRequest('/tables');
+            showResponse('tables-response', result);
+
+            if (result.success && result.data.tables) {
+                availableTablesList = result.data.tables;
+                
+                const tablesList = document.getElementById('tables-list');
+                tablesList.style.display = 'block';
+                tablesList.innerHTML = result.data.tables.map(table =>
+                    `<div class="table-item" onclick="selectTable('${table}')">${table}</div>`
+                ).join('');
+
+                // Popula o select do construtor de query
+                updateAvailableTablesSelect();
+            }
+        }
+
+        // Atualiza o select de tabelas disponíveis
+        function updateAvailableTablesSelect() {
+            const select = document.getElementById('availableTables');
+            const usedTables = selectedTables.map(t => t.name);
+            const availableTables = availableTablesList.filter(table => !usedTables.includes(table));
+            
+            select.innerHTML = '<option value="">-- Selecione uma tabela para adicionar --</option>' +
+                availableTables.map(table => 
+                    `<option value="${table}">${table}</option>`
+                ).join('');
+        }
+
+        // Selecionar tabela da lista
+        function selectTable(tableName) {
+            // Remove seleção anterior
+            document.querySelectorAll('.table-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+
+            // Adiciona seleção atual
+            event.target.classList.add('selected');
+
+            // Preenche os campos de tabela nas outras seções
+            document.getElementById('queryTable').value = tableName;
+            document.getElementById('insertTable').value = tableName;
+            document.getElementById('updateTable').value = tableName;
+            document.getElementById('deleteTable').value = tableName;
+
+            // Adiciona a tabela ao construtor de query se não estiver já adicionada
+            const availableSelect = document.getElementById('availableTables');
+            if (availableSelect && !selectedTables.some(t => t.name === tableName)) {
+                availableSelect.value = tableName;
+                addTableToQuery();
+            }
+        }
+
+        // Consultar dados da tabela
+        async function getTableData() {
+            const table = document.getElementById('queryTable').value;
+            const limit = document.getElementById('queryLimit').value;
+            const offset = document.getElementById('queryOffset').value;
+
+            if (!table) {
+                alert('Por favor, informe o nome da tabela');
+                return;
+            }
+
+            let endpoint = `/tables/${table}`;
+            const params = new URLSearchParams();
+
+            if (limit) params.append('limit', limit);
+            if (offset) params.append('offset', offset);
+
+            if (params.toString()) {
+                endpoint += `?${params.toString()}`;
+            }
+
+            const result = await makeRequest(endpoint);
+            showResponse('query-response', result);
+        }
+
+        // Ver schema da tabela
+        async function getTableSchema() {
+            const table = document.getElementById('queryTable').value;
+
+            if (!table) {
+                alert('Por favor, informe o nome da tabela');
+                return;
+            }
+
+            const result = await makeRequest(`/tables/${table}/schema`);
+            showResponse('query-response', result);
+        }
+
+        // Inserir dados
+        async function insertData() {
+            const table = document.getElementById('insertTable').value;
+            const dataStr = document.getElementById('insertData').value;
+
+            if (!table || !dataStr) {
+                alert('Por favor, preencha todos os campos');
+                return;
+            }
+
+            try {
+                const data = JSON.parse(dataStr);
+                const result = await makeRequest(`/tables/${table}`, {
+                    method: 'POST',
+                    body: JSON.stringify({ data })
+                });
+                showResponse('insert-response', result);
+            } catch (error) {
+                showResponse('insert-response', { success: false, error: 'JSON inválido' });
+            }
+        }
+
+        // Atualizar dados
+        async function updateData() {
+            const table = document.getElementById('updateTable').value;
+            const dataStr = document.getElementById('updateData').value;
+            const whereClause = document.getElementById('updateWhere').value;
+            const paramsStr = document.getElementById('updateParams').value;
+
+            if (!table || !dataStr || !whereClause || !paramsStr) {
+                alert('Por favor, preencha todos os campos');
+                return;
+            }
+
+            try {
+                const data = JSON.parse(dataStr);
+                const whereParams = JSON.parse(paramsStr);
+
+                const result = await makeRequest(`/tables/${table}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        data,
+                        where_clause: whereClause,
+                        where_params: whereParams
+                    })
+                });
+                showResponse('update-response', result);
+            } catch (error) {
+                showResponse('update-response', { success: false, error: 'JSON inválido' });
+            }
+        }
+
+        // Deletar dados
+        async function deleteData() {
+            const table = document.getElementById('deleteTable').value;
+            const whereClause = document.getElementById('deleteWhere').value;
+            const paramsStr = document.getElementById('deleteParams').value;
+
+            if (!table || !whereClause || !paramsStr) {
+                alert('Por favor, preencha todos os campos');
+                return;
+            }
+
+            if (!confirm('Tem certeza que deseja deletar os registros?')) {
+                return;
+            }
+
+            try {
+                const whereParams = JSON.parse(paramsStr);
+
+                const result = await makeRequest(`/tables/${table}`, {
+                    method: 'DELETE',
+                    body: JSON.stringify({
+                        where_clause: whereClause,
+                        where_params: whereParams
+                    })
+                });
+                showResponse('delete-response', result);
+            } catch (error) {
+                showResponse('delete-response', { success: false, error: 'JSON inválido' });
+            }
+        }
+
+        // Executar query customizada
+        async function executeCustomQuery() {
+            const query = document.getElementById('customQuery').value;
+
+            if (!query) {
+                alert('Por favor, informe a query SQL');
+                return;
+            }
+
+            const result = await makeRequest('/query', {
+                method: 'POST',
+                body: JSON.stringify({ query })
+            });
+            showResponse('custom-response', result);
+        }
+
+        // Variáveis globais para o construtor de query
+        let selectedTables = [];
+        let allTablesColumns = {};
+        let whereConditionCount = 0;
+        let availableTablesList = [];
+
+        // Adicionar tabela à query
+        async function addTableToQuery() {
+            const select = document.getElementById('availableTables');
+            const tableName = select.value;
+            
+            if (!tableName) {
+                alert('Selecione uma tabela para adicionar');
+                return;
+            }
+
+            // Carrega as colunas da tabela
+            const result = await makeRequest(`/tables/${tableName}/schema`);
+            
+            if (result.success && result.data.columns) {
+                const tableAlias = generateTableAlias(tableName);
+                
+                const tableObj = {
+                    name: tableName,
+                    alias: tableAlias,
+                    columns: result.data.columns,
+                    joinType: selectedTables.length > 0 ? 'INNER JOIN' : '',
+                    joinCondition: ''
+                };
+                
+                selectedTables.push(tableObj);
+                allTablesColumns[tableName] = result.data.columns;
+                
+                updateSelectedTablesDisplay();
+                updateAvailableTablesSelect();
+                updateColumnsDisplay();
+                updateWhereConditionsColumns();
+                updateOrderByColumns();
+                showQuerySections();
+                updateQuery();
+            }
+        }
+
+        // Gerar alias para tabela
+        function generateTableAlias(tableName) {
+            const baseAlias = tableName.substring(0, 3).toLowerCase();
+            let alias = baseAlias;
+            let counter = 1;
+            
+            while (selectedTables.some(t => t.alias === alias)) {
+                alias = baseAlias + counter;
+                counter++;
+            }
+            
+            return alias;
+        }
+
+        // Atualizar display das tabelas selecionadas
+        function updateSelectedTablesDisplay() {
+            const container = document.getElementById('selectedTables');
+            
+            if (selectedTables.length === 0) {
+                container.innerHTML = '<p style="color: #666; text-align: center; margin: 20px 0;">Nenhuma tabela selecionada</p>';
+                return;
+            }
+            
+            container.innerHTML = selectedTables.map((table, index) => `
+                <div class="table-item-selected">
+                    <div class="table-info">
+                        <span class="table-name">${table.name}</span>
+                        <span class="table-alias">alias: ${table.alias}</span>
+                        ${index > 0 ? `<span class="join-indicator">${table.joinType}</span>` : '<span class="join-indicator">MAIN</span>'}
+                    </div>
+                    ${index > 0 ? `
+                        <div class="join-config">
+                            <select onchange="updateTableJoinType(${index}, this.value)">
+                                <option value="INNER JOIN" ${table.joinType === 'INNER JOIN' ? 'selected' : ''}>INNER JOIN</option>
+                                <option value="LEFT JOIN" ${table.joinType === 'LEFT JOIN' ? 'selected' : ''}>LEFT JOIN</option>
+                                <option value="RIGHT JOIN" ${table.joinType === 'RIGHT JOIN' ? 'selected' : ''}>RIGHT JOIN</option>
+                            </select>
+                            <input type="text" placeholder="Condição (ex: t1.id = t2.id)" 
+                                   value="${table.joinCondition}" 
+                                   onchange="updateTableJoinCondition(${index}, this.value)">
+                        </div>
+                    ` : ''}
+                    <button class="remove-table-btn" onclick="removeTableFromQuery(${index})">🗑️</button>
+                </div>
+            `).join('');
+        }
+
+        // Atualizar tipo de JOIN
+        function updateTableJoinType(index, joinType) {
+            selectedTables[index].joinType = joinType;
+            updateQuery();
+        }
+
+        // Atualizar condição de JOIN
+        function updateTableJoinCondition(index, condition) {
+            selectedTables[index].joinCondition = condition;
+            updateQuery();
+        }
+
+        // Remover tabela da query
+        function removeTableFromQuery(index) {
+            const removedTable = selectedTables.splice(index, 1)[0];
+            delete allTablesColumns[removedTable.name];
+            
+            updateSelectedTablesDisplay();
+            updateAvailableTablesSelect();
+            updateColumnsDisplay();
+            updateWhereConditionsColumns();
+            updateOrderByColumns();
+            
+            if (selectedTables.length === 0) {
+                hideQuerySections();
+            }
+            
+            updateQuery();
+        }
+
+        // Limpar todas as tabelas
+        function clearAllTables() {
+            selectedTables = [];
+            allTablesColumns = {};
+            
+            updateSelectedTablesDisplay();
+            updateAvailableTablesSelect();
+            hideQuerySections();
+        }
+
+        // Mostrar seções da query
+        function showQuerySections() {
+            document.getElementById('columnsSection').style.display = 'block';
+            document.getElementById('whereSection').style.display = 'block';
+            document.getElementById('orderSection').style.display = 'block';
+            document.getElementById('limitSection').style.display = 'block';
+            document.getElementById('generatedQuerySection').style.display = 'block';
+        }
+
+        // Esconder seções da query
+        function hideQuerySections() {
+            document.getElementById('columnsSection').style.display = 'none';
+            document.getElementById('whereSection').style.display = 'none';
+            document.getElementById('orderSection').style.display = 'none';
+            document.getElementById('limitSection').style.display = 'none';
+            document.getElementById('generatedQuerySection').style.display = 'none';
+        }
+
+        // Atualizar display das colunas
+        function updateColumnsDisplay() {
+            const columnsList = document.getElementById('columnsList');
+            
+            if (selectedTables.length === 0) {
+                columnsList.innerHTML = '';
+                return;
+            }
+            
+            let columnsHtml = '';
+            
+            selectedTables.forEach(table => {
+                columnsHtml += `<div style="margin-bottom: 15px;">
+                    <h4 style="color: #4facfe; margin-bottom: 10px;">${table.name} (${table.alias})</h4>
+                    ${table.columns.map(col => `
+                        <div class="column-item">
+                            <input type="checkbox" id="col_${table.alias}_${col.name}" 
+                                   value="${table.alias}.${col.name}" onchange="updateQuery()">
+                            <label for="col_${table.alias}_${col.name}">${col.name}</label>
+                            <span class="column-info">${col.type}</span>
+                        </div>
+                    `).join('')}
+                </div>`;
+            });
+            
+            columnsList.innerHTML = columnsHtml;
+        }
+
+        // Atualizar colunas nas condições WHERE
+        function updateWhereConditionsColumns() {
+            const whereSelects = document.querySelectorAll('.where-condition select:first-child');
+            const allColumns = [];
+            
+            selectedTables.forEach(table => {
+                table.columns.forEach(col => {
+                    allColumns.push({
+                        value: `${table.alias}.${col.name}`,
+                        label: `${table.name}.${col.name} (${table.alias})`
+                    });
+                });
+            });
+            
+            whereSelects.forEach(select => {
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">-- Coluna --</option>' +
+                    allColumns.map(col => 
+                        `<option value="${col.value}" ${col.value === currentValue ? 'selected' : ''}>${col.label}</option>`
+                    ).join('');
+            });
+        }
+
+        // Atualizar colunas no ORDER BY
+        function updateOrderByColumns() {
+            const orderSelect = document.getElementById('orderByColumn');
+            const allColumns = [];
+            
+            selectedTables.forEach(table => {
+                table.columns.forEach(col => {
+                    allColumns.push({
+                        value: `${table.alias}.${col.name}`,
+                        label: `${table.name}.${col.name} (${table.alias})`
+                    });
+                });
+            });
+            
+            const currentValue = orderSelect.value;
+            orderSelect.innerHTML = '<option value="">-- Sem ordenação --</option>' +
+                allColumns.map(col => 
+                    `<option value="${col.value}" ${col.value === currentValue ? 'selected' : ''}>${col.label}</option>`
+                ).join('');
+        }
+
+        // Selecionar todas as colunas
+        function selectAllColumns() {
+            const checkboxes = document.querySelectorAll('#columnsList input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = true);
+            updateQuery();
+        }
+
+        // Limpar seleção de colunas
+        function clearAllColumns() {
+            const checkboxes = document.querySelectorAll('#columnsList input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+            updateQuery();
+        }
+
+        // Adicionar condição WHERE
+        function addWhereCondition() {
+            if (selectedTables.length === 0) {
+                alert('Adicione pelo menos uma tabela primeiro');
+                return;
+            }
+
+            whereConditionCount++;
+            const whereContainer = document.getElementById('whereConditions');
+
+            // Adicionar operador lógico se não for a primeira condição
+            if (whereConditionCount > 1) {
+                const logicDiv = document.createElement('div');
+                logicDiv.className = 'logic-operator';
+                logicDiv.innerHTML = 'AND';
+                whereContainer.appendChild(logicDiv);
+            }
+
+            // Gerar opções de colunas de todas as tabelas
+            const allColumns = [];
+            selectedTables.forEach(table => {
+                table.columns.forEach(col => {
+                    allColumns.push({
+                        value: `${table.alias}.${col.name}`,
+                        label: `${table.name}.${col.name} (${table.alias})`
+                    });
+                });
+            });
+
+            const conditionDiv = document.createElement('div');
+            conditionDiv.className = 'where-condition';
+            conditionDiv.innerHTML = `
+                <select onchange="updateQuery()">
+                    <option value="">-- Coluna --</option>
+                    ${allColumns.map(col =>
+                        `<option value="${col.value}">${col.label}</option>`
+                    ).join('')}
+                </select>
+                <select onchange="updateQuery()">
+                    <option value="=">=</option>
+                    <option value="!=">!=</option>
+                    <option value=">">></option>
+                    <option value="<"><</option>
+                    <option value=">=">>=</option>
+                    <option value="<="><=</option>
+                    <option value="LIKE">LIKE</option>
+                    <option value="NOT LIKE">NOT LIKE</option>
+                    <option value="IS NULL">IS NULL</option>
+                    <option value="IS NOT NULL">IS NOT NULL</option>
+                </select>
+                <input type="text" placeholder="Valor" onchange="updateQuery()">
+                <button onclick="removeWhereCondition(this)">🗑️</button>
+            `;
+
+            whereContainer.appendChild(conditionDiv);
+            updateQuery();
+        }
+
+        // Remover condição WHERE
+        function removeWhereCondition(button) {
+            const condition = button.parentElement;
+            const container = condition.parentElement;
+
+            // Remove a condição
+            condition.remove();
+
+            // Remove operador lógico órfão se necessário
+            const logicOperators = container.querySelectorAll('.logic-operator');
+            const conditions = container.querySelectorAll('.where-condition');
+
+            if (logicOperators.length >= conditions.length && logicOperators.length > 0) {
+                logicOperators[logicOperators.length - 1].remove();
+            }
+
+            whereConditionCount = conditions.length;
+            updateQuery();
+        }
+
+        // Validar e limpar valores SQL
+        function sanitizeSqlValue(value) {
+            if (!value) return '';
+            return value.toString().trim().replace(/'/g, "''"); // Escape aspas simples
+        }
+
+        // Validar nome de coluna/tabela
+        function isValidSqlIdentifier(identifier) {
+            if (!identifier) return false;
+            // Permite letras, números, underscore e ponto (para alias.coluna)
+            return /^[a-zA-Z_][a-zA-Z0-9_.]*$/.test(identifier);
+        }
+
+        // Validar query SQL básica
+        function validateQuery(query) {
+            const errors = [];
+            
+            if (!query || query.trim() === '') {
+                errors.push('Query vazia');
+                return errors;
+            }
+
+            // Verificar se começa com SELECT
+            if (!query.trim().toUpperCase().startsWith('SELECT')) {
+                errors.push('Query deve começar com SELECT');
+            }
+
+            // Verificar se tem FROM
+            if (!query.toUpperCase().includes(' FROM ')) {
+                errors.push('Query deve conter FROM');
+            }
+
+            // Verificar parênteses balanceados
+            const openParens = (query.match(/\(/g) || []).length;
+            const closeParens = (query.match(/\)/g) || []).length;
+            if (openParens !== closeParens) {
+                errors.push('Parênteses não balanceados');
+            }
+
+            // Verificar aspas balanceadas
+            const singleQuotes = (query.match(/'/g) || []).length;
+            if (singleQuotes % 2 !== 0) {
+                errors.push('Aspas simples não balanceadas');
+            }
+
+            return errors;
+        }
+
+        // Atualizar query gerada
+        function updateQuery() {
+            if (selectedTables.length === 0) {
+                document.getElementById('generatedQuery').value = '';
+                return;
+            }
+
+            // Colunas selecionadas
+            const selectedColumns = Array.from(document.querySelectorAll('#columnsList input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+
+            const columnsStr = selectedColumns.length > 0 ? selectedColumns.join(', ') : '*';
+
+            // Construir FROM com JOINs
+            let fromClause = selectedTables[0].name + ' ' + selectedTables[0].alias;
+            
+            for (let i = 1; i < selectedTables.length; i++) {
+                const table = selectedTables[i];
+                fromClause += ` ${table.joinType} ${table.name} ${table.alias}`;
+                
+                if (table.joinCondition) {
+                    fromClause += ` ON ${table.joinCondition}`;
+                }
+            }
+
+            // Verificar se há LIMIT para construir SELECT corretamente
+            const limit = document.getElementById('queryLimit2').value;
+            let selectClause = 'SELECT';
+            if (limit && !isNaN(limit) && parseInt(limit) > 0) {
+                selectClause = `SELECT FIRST ${parseInt(limit)}`;
+            }
+
+            // Construir query base
+            let query = `${selectClause} ${columnsStr} FROM ${fromClause}`;
+
+            // Adicionar condições WHERE
+            const whereConditions = [];
+            const conditionElements = document.querySelectorAll('.where-condition');
+
+            conditionElements.forEach(condition => {
+                const selects = condition.querySelectorAll('select');
+                const input = condition.querySelector('input');
+
+                const column = selects[0].value;
+                const operator = selects[1].value;
+                const value = input.value;
+
+                // Validar coluna
+                if (column && operator && isValidSqlIdentifier(column)) {
+                    if (operator === 'IS NULL' || operator === 'IS NOT NULL') {
+                        whereConditions.push(`${column} ${operator}`);
+                    } else if (value !== undefined && value !== '') {
+                        const sanitizedValue = sanitizeSqlValue(value);
+                        if (operator === 'LIKE' || operator === 'NOT LIKE') {
+                            whereConditions.push(`${column} ${operator} '%${sanitizedValue}%'`);
+                        } else if (isNaN(value)) {
+                            whereConditions.push(`${column} ${operator} '${sanitizedValue}'`);
+                        } else {
+                            whereConditions.push(`${column} ${operator} ${value}`);
+                        }
+                    }
+                }
+            });
+
+            if (whereConditions.length > 0) {
+                query += ' WHERE ' + whereConditions.join(' AND ');
+            }
+
+            // Adicionar ORDER BY
+            const orderColumn = document.getElementById('orderByColumn').value;
+            const orderDirection = document.getElementById('orderDirection').value;
+
+            if (orderColumn && orderColumn.trim() !== '' && isValidSqlIdentifier(orderColumn)) {
+                const validDirections = ['ASC', 'DESC'];
+                const direction = validDirections.includes(orderDirection) ? orderDirection : 'ASC';
+                query += ` ORDER BY ${orderColumn} ${direction}`;
+            }
+
+            // Atualizar textarea
+            document.getElementById('generatedQuery').value = query;
+        }
+
+        // Validar query apenas
+        function validateQueryOnly() {
+            const query = document.getElementById('generatedQuery').value;
+            
+            if (!query || query.trim() === '') {
+                alert('Nenhuma query foi gerada');
+                return;
+            }
+
+            const validationErrors = validateQuery(query);
+            
+            if (validationErrors.length === 0) {
+                alert('✅ Query válida!\n\nTamanho: ' + query.length + ' caracteres');
+            } else {
+                alert('❌ Erros encontrados:\n\n' + validationErrors.join('\n'));
+            }
+        }
+
+        // Copiar query para clipboard
+        function copyQuery() {
+            const queryText = document.getElementById('generatedQuery').value;
+            navigator.clipboard.writeText(queryText).then(() => {
+                alert('Query copiada para o clipboard!');
+            });
+        }
+
+        // Executar query gerada
+        async function executeGeneratedQuery() {
+            const query = document.getElementById('generatedQuery').value;
+
+            if (!query || query.trim() === '') {
+                alert('Nenhuma query foi gerada');
+                return;
+            }
+
+            // Validar query antes de executar
+            const validationErrors = validateQuery(query);
+            if (validationErrors.length > 0) {
+                alert('Erros na query:\n' + validationErrors.join('\n'));
+                console.error('Erros de validação:', validationErrors);
+                return;
+            }
+
+            // Debug: mostrar a query no console
+            console.log('Executando query:', query);
+            console.log('Tamanho da query:', query.length);
+            if (query.length >= 93) {
+                console.log('Posição 93:', query.charAt(92), 'Contexto:', query.substring(85, 100));
+            }
+
+            try {
+                const result = await makeRequest('/query', {
+                    method: 'POST',
+                    body: JSON.stringify({ query })
+                });
+                showResponse('query-builder-response', result);
+            } catch (error) {
+                console.error('Erro na execução:', error);
+                showResponse('query-builder-response', { 
+                    success: false, 
+                    error: `Erro na query: ${error.message}\n\nQuery gerada:\n${query}` 
+                });
+            }
+        }
+
+        // Verificar conexão ao carregar a página
+        window.onload = function () {
+            checkHealth();
+        };
+    </script>
+</body>
+
+</html>
