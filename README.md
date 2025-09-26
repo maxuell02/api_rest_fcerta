@@ -42,11 +42,6 @@ Remove registros da tabela.
 Crie um arquivo `.env` com:
 
 ```
-DATABASE_PATH=D:\sistemas\fcerta\DB\ALTERDB.ib
-DATABASE_HOST=25.90.252.41
-DATABASE_USERNAME=SYSDBA
-DATABASE_PASSWORD=masterkey
-DATABASE_PORT=3050
 ```
 
 ## Instalação Local
