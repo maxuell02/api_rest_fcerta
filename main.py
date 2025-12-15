@@ -4,6 +4,8 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 from database import FirebirdDatabase
 import os
+import re
+from typing import Any
 
 app = FastAPI(
     title="Firebird Database API",
@@ -35,6 +37,17 @@ class UpdateData(BaseModel):
 class DeleteData(BaseModel):
     where_clause: str
     where_params: List[Any]
+
+class MultiFindItem(BaseModel):
+    table: str
+    column: str
+    value: Any
+    op: Optional[str] = "="
+    limit: Optional[int] = None
+    offset: Optional[int] = None
+
+class MultiFindRequest(BaseModel):
+    items: List[MultiFindItem]
 
 @app.get("/")
 async def root():
@@ -75,6 +88,8 @@ async def get_tables():
 async def get_table_schema(table_name: str):
     """Retorna o schema (estrutura) de uma tabela específica"""
     try:
+        if not re.fullmatch(r'FC\d{5}', table_name.upper()):
+            raise HTTPException(status_code=400, detail="Nome de tabela inválido. Use padrão FCxxxxx")
         columns = db.get_table_columns(table_name)
         if not columns:
             raise HTTPException(status_code=404, detail=f"Tabela '{table_name}' não encontrada")
@@ -96,6 +111,8 @@ async def get_table_data(
 ):
     """Retorna dados de uma tabela específica com paginação opcional"""
     try:
+        if not re.fullmatch(r'FC\d{5}', table_name.upper()):
+            raise HTTPException(status_code=400, detail="Nome de tabela inválido. Use padrão FCxxxxx")
         result = db.execute_select(table_name, limit, offset)
         return result
     except Exception as e:
@@ -103,10 +120,77 @@ async def get_table_data(
             raise HTTPException(status_code=404, detail=f"Tabela '{table_name}' não encontrada")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/tables/{table_name}/find")
+async def find_in_table(
+    table_name: str,
+    column: str = Query(..., description="Nome da coluna para filtro"),
+    value: str = Query(..., description="Valor a ser comparado"),
+    op: str = Query("=", description="Operador (=, <>, >, <, >=, <=, LIKE)"),
+    limit: Optional[int] = Query(None, description="Máximo de registros"),
+    offset: Optional[int] = Query(None, description="Registros a pular")
+):
+    """Filtra registros de uma tabela por coluna e valor"""
+    try:
+        if not re.fullmatch(r'FC\d{5}', table_name.upper()):
+            raise HTTPException(status_code=400, detail="Nome de tabela inválido. Use padrão FCxxxxx")
+        allowed_ops = ["=", "<>", ">", "<", ">=", "<=", "LIKE"]
+        op_upper = op.upper()
+        if op_upper not in allowed_ops:
+            raise HTTPException(status_code=400, detail=f"Operador inválido. Use: {', '.join(allowed_ops)}")
+        
+        # Tenta converter value para número quando fizer sentido
+        parsed_value: Any = value
+        if op_upper != "LIKE":
+            try:
+                if "." in value:
+                    parsed_value = float(value)
+                else:
+                    parsed_value = int(value)
+            except ValueError:
+                parsed_value = value
+        
+        where_clause = f"{column.upper()} {op_upper} ?"
+        result = db.execute_select_where(table_name, where_clause, [parsed_value], limit, offset)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/multi/find")
+async def multi_find(req: MultiFindRequest):
+    try:
+        allowed_ops = ["=", "<>", ">", "<", ">=", "<=", "LIKE"]
+        results = {}
+        total = 0
+        for item in req.items:
+            tbl = item.table.upper()
+            if not re.fullmatch(r'FC\d{5}', tbl):
+                raise HTTPException(status_code=400, detail=f"Nome de tabela inválido: {tbl}")
+            op_upper = (item.op or "=").upper()
+            if op_upper not in allowed_ops:
+                raise HTTPException(status_code=400, detail=f"Operador inválido em {tbl}. Use: {', '.join(allowed_ops)}")
+            parsed_value: Any = item.value
+            if op_upper != "LIKE" and isinstance(parsed_value, str):
+                try:
+                    if "." in parsed_value:
+                        parsed_value = float(parsed_value)
+                    else:
+                        parsed_value = int(parsed_value)
+                except ValueError:
+                    pass
+            where_clause = f"{item.column.upper()} {op_upper} ?"
+            res = db.execute_select_where(tbl, where_clause, [parsed_value], item.limit, item.offset)
+            results[tbl] = res
+            total += res.get("count", 0)
+        return {"results": results, "total_count": total, "tables": list(results.keys())}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/tables/{table_name}")
 async def insert_data(table_name: str, insert_data: InsertData):
     """Insere um novo registro na tabela especificada"""
     try:
+        if not re.fullmatch(r'FC\d{5}', table_name.upper()):
+            raise HTTPException(status_code=400, detail="Nome de tabela inválido. Use padrão FCxxxxx")
         result = db.execute_insert(table_name, insert_data.data)
         return result
     except Exception as e:
@@ -116,6 +200,8 @@ async def insert_data(table_name: str, insert_data: InsertData):
 async def update_data(table_name: str, update_data: UpdateData):
     """Atualiza registros na tabela especificada"""
     try:
+        if not re.fullmatch(r'FC\d{5}', table_name.upper()):
+            raise HTTPException(status_code=400, detail="Nome de tabela inválido. Use padrão FCxxxxx")
         result = db.execute_update(
             table_name, 
             update_data.data, 
@@ -130,6 +216,8 @@ async def update_data(table_name: str, update_data: UpdateData):
 async def delete_data(table_name: str, delete_data: DeleteData):
     """Deleta registros da tabela especificada"""
     try:
+        if not re.fullmatch(r'FC\d{5}', table_name.upper()):
+            raise HTTPException(status_code=400, detail="Nome de tabela inválido. Use padrão FCxxxxx")
         result = db.execute_delete(
             table_name, 
             delete_data.where_clause, 
@@ -156,6 +244,35 @@ async def execute_custom_query(query_data: Dict[str, Any]):
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/query/params")
+async def execute_custom_query_params(query_data: Dict[str, Any]):
+    try:
+        query = str(query_data.get("query", "")).strip()
+        params = query_data.get("params", [])
+        if not query.upper().startswith("SELECT"):
+            raise HTTPException(status_code=400, detail="Apenas queries SELECT são permitidas")
+        result = db.execute_custom_query_params(query, params if isinstance(params, list) else [])
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/db/status")
+async def db_status():
+    """Verifica status da conexão e mostra informações básicas"""
+    try:
+        conn = db.get_connection()
+        conn.close()
+        # Evita expor segredos
+        return {
+            "status": "ok",
+            "database": "connected",
+            "host": os.getenv("DATABASE_HOST"),
+            "port": int(os.getenv("DATABASE_PORT", 3050)),
+            "charset": os.getenv("DATABASE_CHARSET", "WIN1252")
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Falha na conexão: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

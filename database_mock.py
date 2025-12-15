@@ -88,6 +88,71 @@ class FirebirdDatabase:
             'count': len(data)
         }
     
+    def execute_select_where(
+        self,
+        table_name: str,
+        where_clause: str,
+        where_params: List[Any],
+        limit: Optional[int] = None,
+        offset: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """Mock SELECT com WHERE simples (apenas coluna = valor)"""
+        mock_data = {
+            'FC07000': [
+                {'CDCLI': 1, 'NOMECLI': 'João Silva', 'EMAIL': 'joao@email.com', 'TELEFONE': '11999999999'},
+                {'CDCLI': 2, 'NOMECLI': 'Maria Santos', 'EMAIL': 'maria@email.com', 'TELEFONE': '11888888888'},
+                {'CDCLI': 3, 'NOMECLI': 'Pedro Costa', 'EMAIL': 'pedro@email.com', 'TELEFONE': '11777777777'}
+            ],
+            'FC08000': [
+                {'NUMPEDIDO': 1001, 'CDCLI': 1, 'DATAPEDIDO': '2024-01-15', 'VALOR': 150.50},
+                {'NUMPEDIDO': 1002, 'CDCLI': 2, 'DATAPEDIDO': '2024-01-16', 'VALOR': 275.80},
+                {'NUMPEDIDO': 1003, 'CDCLI': 1, 'DATAPEDIDO': '2024-01-17', 'VALOR': 89.90}
+            ]
+        }
+        
+        data = mock_data.get(table_name.upper(), [])
+        
+        # Tenta extrair coluna de where_clause no formato "COLUNA OP ?"
+        try:
+            col = where_clause.split()[0].upper()
+            op = where_clause.split()[1].upper()
+            val = where_params[0] if where_params else None
+            
+            def match(d):
+                if col not in d:
+                    return False
+                dv = d[col]
+                if op == '=':
+                    return dv == val
+                if op == '<>':
+                    return dv != val
+                if op == '>':
+                    return isinstance(dv, (int, float)) and dv > val
+                if op == '<':
+                    return isinstance(dv, (int, float)) and dv < val
+                if op == '>=':
+                    return isinstance(dv, (int, float)) and dv >= val
+                if op == '<=':
+                    return isinstance(dv, (int, float)) and dv <= val
+                if op == 'LIKE':
+                    return isinstance(dv, str) and str(val).replace('%', '') in dv
+                return False
+            
+            filtered = [r for r in data if match(r)]
+        except Exception:
+            filtered = data
+        
+        if limit:
+            filtered = filtered[:limit]
+        
+        columns = list(filtered[0].keys()) if filtered else []
+        return {
+            'table': table_name,
+            'columns': columns,
+            'data': filtered,
+            'count': len(filtered)
+        }
+    
     def execute_insert(self, table_name: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Mock insert"""
         return {'message': f'Mock: Registro inserido com sucesso na tabela {table_name}'}
@@ -105,6 +170,15 @@ class FirebirdDatabase:
         return {
             'columns': ['RESULTADO'],
             'data': [{'RESULTADO': f'Mock result for: {query[:50]}...'}],
+            'count': 1,
+            'query': query
+        }
+    
+    def execute_custom_query_params(self, query: str, params: List[Any]) -> Dict[str, Any]:
+        """Mock custom query com parâmetros"""
+        return {
+            'columns': ['RESULTADO', 'PARAMS'],
+            'data': [{'RESULTADO': f'Mock result for: {query[:50]}...', 'PARAMS': params}],
             'count': 1,
             'query': query
         }

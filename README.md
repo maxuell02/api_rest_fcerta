@@ -12,8 +12,12 @@ API REST em Python para disponibilizar todas as tabelas de um banco de dados Fir
 - ✅ Deletar registros
 - ✅ Executar queries SELECT customizadas
 - ✅ Health check da API e banco
+- ✅ Filtro simples por coluna e valor
+- ✅ Status detalhado do banco
 
 ## Endpoints Principais
+
+Observação: por segurança, a API só aceita tabelas no padrão `FCxxxxx` (ex.: `FC07000`, `FC08000`).
 
 ### GET /tables
 Lista todas as tabelas disponíveis no banco.
@@ -26,6 +30,13 @@ Retorna dados de uma tabela específica.
 ### GET /tables/{table_name}/schema
 Retorna a estrutura/schema de uma tabela.
 
+### GET /tables/{table_name}/find
+Filtra registros por uma coluna e valor.
+- `column`: nome da coluna (obrigatório)
+- `value`: valor a comparar (obrigatório)
+- `op`: operador (`=`, `<>`, `>`, `<`, `>=`, `<=`, `LIKE`) (padrão `=`)
+- `limit`, `offset`: paginação (opcional)
+
 ### POST /tables/{table_name}
 Insere um novo registro na tabela.
 
@@ -34,6 +45,9 @@ Atualiza registros existentes na tabela.
 
 ### DELETE /tables/{table_name}
 Remove registros da tabela.
+
+### GET /db/status
+Mostra status de conexão do banco e informações básicas (sem expor segredos).
 
 ## Configuração
 
@@ -83,6 +97,23 @@ DATABASE_PORT = 3050
 DATABASE_CHARSET = WIN1252
 ```
 
+### 🧭 Passo a Passo no Render (UI)
+- Acesse `https://render.com` e clique em `New +` → `Web Service`
+- Conecte seu repositório GitHub com este projeto
+- Configure:
+  - `Runtime`: `Python`
+  - `Build Command`: conforme acima
+  - `Start Command`: `python start.py`
+  - `Environment Variables`: conforme acima
+- Clique em `Create Web Service` e aguarde o build
+- Teste `GET /health` na URL pública do serviço
+
+### 🌐 Notas de Rede
+- O `DATABASE_HOST` precisa ser acessível pela internet a partir do Render
+- IPs de redes privadas/VPN (ex.: `25.x` Hamachi) não funcionam no Render
+- Garanta que a porta `3050` esteja aberta e acessível externamente
+- Se necessário, use um túnel/VPN corporativo com gateway público
+
 ### ✅ Sistema à Prova de Falhas
 - ✅ **5 níveis de fallback** automático
 - ✅ **Funciona sempre** (pelo menos modo mock)
@@ -101,6 +132,44 @@ Após iniciar a API, acesse:
 - ReDoc: `http://localhost:8000/redoc`
 
 ## Exemplos de Uso
+ 
+### Ambiente Render
+- Base URL: `https://api-rest-fcerta.onrender.com`
+- Saúde: `https://api-rest-fcerta.onrender.com/health`
+- Status DB: `https://api-rest-fcerta.onrender.com/db/status`
+ 
+#### Exemplos com a URL do Render
+```bash
+# Saúde
+curl https://api-rest-fcerta.onrender.com/health
+
+# Listar tabelas
+curl https://api-rest-fcerta.onrender.com/tables
+
+# Dados com paginação
+curl "https://api-rest-fcerta.onrender.com/tables/FC07000?limit=10&offset=0"
+
+# Filtrar (LIKE)
+curl "https://api-rest-fcerta.onrender.com/tables/FC07000/find?column=NOMECLI&value=Silva&op=LIKE&limit=5"
+
+# Multi busca
+curl -X POST https://api-rest-fcerta.onrender.com/multi/find \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [
+      {"table": "FC07000", "column": "CDCLI", "value": 1},
+      {"table": "FC08000", "column": "CDCLI", "value": 1, "limit": 5}
+    ]
+  }'
+
+# Query parametrizada
+curl -X POST https://api-rest-fcerta.onrender.com/query/params \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT FIRST 10 CDCLI, NOMECLI FROM FC07000 WHERE CDCLI = ?",
+    "params": [1]
+  }'
+```
 
 ### Listar tabelas
 ```bash
@@ -110,6 +179,37 @@ curl http://localhost:8000/tables
 ### Consultar dados de uma tabela
 ```bash
 curl http://localhost:8000/tables/USUARIOS?limit=10&offset=0
+```
+
+### Filtrar dados de uma tabela
+```bash
+# Igualdade (op padrão "=")
+curl "http://localhost:8000/tables/FC07000/find?column=CDCLI&value=1"
+
+# LIKE (contém)
+curl "http://localhost:8000/tables/FC07000/find?column=NOMECLI&value=Silva&op=LIKE&limit=5"
+```
+
+### Buscar em múltiplas tabelas
+```bash
+curl -X POST http://localhost:8000/multi/find \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [
+      {"table": "FC07000", "column": "CDCLI", "value": 1},
+      {"table": "FC08000", "column": "CDCLI", "value": 1, "limit": 5}
+    ]
+  }'
+```
+
+### Executar SELECT parametrizado
+```bash
+curl -X POST http://localhost:8000/query/params \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT FIRST 10 CDCLI, NOMECLI FROM FC07000 WHERE CDCLI = ?",
+    "params": [1]
+  }'
 ```
 
 ### Inserir dados
@@ -138,6 +238,11 @@ curl -X DELETE http://localhost:8000/tables/USUARIOS \
     "where_clause": "id = ?",
     "where_params": [1]
   }'
+```
+
+### Status do banco
+```bash
+curl http://localhost:8000/db/status
 ```
 
 ## Segurança

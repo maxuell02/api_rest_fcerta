@@ -1,5 +1,6 @@
 import fdb
 import os
+import re
 from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
 
@@ -65,6 +66,7 @@ class FirebirdDatabase:
                 ORDER BY RDB$RELATION_NAME
             """)
             tables = [row[0].strip() for row in cursor.fetchall()]
+            tables = [t for t in tables if re.fullmatch(r'FC\d{5}', t)]
             return tables
         finally:
             connection.close()
@@ -175,6 +177,66 @@ class FirebirdDatabase:
         finally:
             connection.close()
     
+    def execute_select_where(
+        self, 
+        table_name: str, 
+        where_clause: str, 
+        where_params: List[Any], 
+        limit: Optional[int] = None, 
+        offset: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """Executa SELECT com WHERE parametrizado e paginação"""
+        connection = self.get_connection()
+        try:
+            cursor = connection.cursor()
+            
+            # Monta SELECT com paginação
+            base_select = "SELECT *"
+            if limit is not None:
+                if offset and offset > 0:
+                    base_select = f"SELECT FIRST {limit} SKIP {offset} *"
+                else:
+                    base_select = f"SELECT FIRST {limit} *"
+            
+            query = f"{base_select} FROM {table_name.upper()} WHERE {where_clause}"
+            cursor.execute(query, where_params)
+            rows = cursor.fetchall()
+            
+            columns = [desc[0] for desc in cursor.description]
+            data = []
+            for row in rows:
+                row_dict = {}
+                for i, value in enumerate(row):
+                    if hasattr(value, 'isoformat'):
+                        row_dict[columns[i]] = value.isoformat()
+                    elif value is None:
+                        row_dict[columns[i]] = None
+                    elif isinstance(value, bytes):
+                        try:
+                            row_dict[columns[i]] = value.decode('utf-8')
+                        except UnicodeDecodeError:
+                            try:
+                                row_dict[columns[i]] = value.decode('latin1')
+                            except UnicodeDecodeError:
+                                try:
+                                    row_dict[columns[i]] = value.decode('cp1252')
+                                except UnicodeDecodeError:
+                                    row_dict[columns[i]] = str(value, errors='ignore')
+                    elif isinstance(value, str):
+                        row_dict[columns[i]] = value.strip()
+                    else:
+                        row_dict[columns[i]] = value if isinstance(value, (int, float, bool)) else str(value)
+                data.append(row_dict)
+            
+            return {
+                'table': table_name,
+                'columns': columns,
+                'data': data,
+                'count': len(data)
+            }
+        finally:
+            connection.close()
+    
     def execute_insert(self, table_name: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Executa INSERT em uma tabela"""
         connection = self.get_connection()
@@ -267,6 +329,53 @@ class FirebirdDatabase:
                     else:
                         row_dict[column_name] = value if isinstance(value, (int, float, bool)) else str(value)
                         
+                data.append(row_dict)
+            
+            return {
+                'columns': columns,
+                'data': data,
+                'count': len(data),
+                'query': query
+            }
+        finally:
+            connection.close()
+    
+    def execute_custom_query_params(self, query: str, params: List[Any]) -> Dict[str, Any]:
+        """Executa uma query customizada parametrizada (apenas SELECT)"""
+        connection = self.get_connection()
+        try:
+            cursor = connection.cursor()
+            cursor.execute(query, params or [])
+            rows = cursor.fetchall()
+            
+            columns = [desc[0].strip() if desc[0] else f'col_{i}' for i, desc in enumerate(cursor.description)]
+            
+            data = []
+            for row in rows:
+                row_dict = {}
+                for i, value in enumerate(row):
+                    column_name = columns[i]
+                    if hasattr(value, 'isoformat'):
+                        row_dict[column_name] = value.isoformat()
+                    elif value is None:
+                        row_dict[column_name] = None
+                    elif isinstance(value, bytes):
+                        try:
+                            row_dict[column_name] = value.decode('utf-8').strip()
+                        except UnicodeDecodeError:
+                            try:
+                                row_dict[column_name] = value.decode('latin1').strip()
+                            except UnicodeDecodeError:
+                                try:
+                                    row_dict[column_name] = value.decode('cp1252').strip()
+                                except UnicodeDecodeError:
+                                    row_dict[column_name] = str(value, errors='replace').strip()
+                    elif isinstance(value, str):
+                        cleaned_value = value.strip()
+                        cleaned_value = ''.join(char for char in cleaned_value if ord(char) >= 32 or char in '\n\r\t')
+                        row_dict[column_name] = cleaned_value
+                    else:
+                        row_dict[column_name] = value if isinstance(value, (int, float, bool)) else str(value)
                 data.append(row_dict)
             
             return {
