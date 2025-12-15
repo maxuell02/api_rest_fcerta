@@ -70,7 +70,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-A API estará disponível em `http://localhost:8000`
+A API estará disponível em `https://api-rest-fcerta.onrender.com`
 
 ## Deploy no Render
 
@@ -128,8 +128,8 @@ DATABASE_CHARSET = WIN1252
 ## Documentação Interativa
 
 Após iniciar a API, acesse:
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+- Swagger UI: `https://api-rest-fcerta.onrender.com/docs`
+- ReDoc: `https://api-rest-fcerta.onrender.com/redoc`
 
 ## Exemplos de Uso
  
@@ -137,7 +137,13 @@ Após iniciar a API, acesse:
 - Base URL: `https://api-rest-fcerta.onrender.com`
 - Saúde: `https://api-rest-fcerta.onrender.com/health`
 - Status DB: `https://api-rest-fcerta.onrender.com/db/status`
- 
+
+### Ativar dados reais no Render
+- Use `requirements.txt` com `fdb` (já atualizado).
+- Reimplante para aplicar dependências e o novo `start.py` que prioriza `main`.
+- Garanta que o `DATABASE_HOST` é público (não `25.x`) e com porta `3050` aberta.
+- Valide com `GET /db/status`; deve retornar `database: "connected"` usando modo real.
+
 #### Exemplos com a URL do Render
 ```bash
 # Saúde
@@ -173,26 +179,26 @@ curl -X POST https://api-rest-fcerta.onrender.com/query/params \
 
 ### Listar tabelas
 ```bash
-curl http://localhost:8000/tables
+curl https://api-rest-fcerta.onrender.com/tables
 ```
 
 ### Consultar dados de uma tabela
 ```bash
-curl http://localhost:8000/tables/USUARIOS?limit=10&offset=0
+curl "https://api-rest-fcerta.onrender.com/tables/FC07000?limit=10&offset=0"
 ```
 
 ### Filtrar dados de uma tabela
 ```bash
 # Igualdade (op padrão "=")
-curl "http://localhost:8000/tables/FC07000/find?column=CDCLI&value=1"
+curl "https://api-rest-fcerta.onrender.com/tables/FC07000/find?column=CDCLI&value=1"
 
 # LIKE (contém)
-curl "http://localhost:8000/tables/FC07000/find?column=NOMECLI&value=Silva&op=LIKE&limit=5"
+curl "https://api-rest-fcerta.onrender.com/tables/FC07000/find?column=NOMECLI&value=Silva&op=LIKE&limit=5"
 ```
 
 ### Buscar em múltiplas tabelas
 ```bash
-curl -X POST http://localhost:8000/multi/find \
+curl -X POST https://api-rest-fcerta.onrender.com/multi/find \
   -H "Content-Type: application/json" \
   -d '{
     "items": [
@@ -204,7 +210,7 @@ curl -X POST http://localhost:8000/multi/find \
 
 ### Executar SELECT parametrizado
 ```bash
-curl -X POST http://localhost:8000/query/params \
+curl -X POST https://api-rest-fcerta.onrender.com/query/params \
   -H "Content-Type: application/json" \
   -d '{
     "query": "SELECT FIRST 10 CDCLI, NOMECLI FROM FC07000 WHERE CDCLI = ?",
@@ -214,35 +220,35 @@ curl -X POST http://localhost:8000/query/params \
 
 ### Inserir dados
 ```bash
-curl -X POST http://localhost:8000/tables/USUARIOS \
+curl -X POST https://api-rest-fcerta.onrender.com/tables/FC07000 \
   -H "Content-Type: application/json" \
-  -d '{"data": {"nome": "João", "email": "joao@email.com"}}'
+  -d '{"data": {"NOMECLI": "João Silva", "EMAIL": "joao@email.com"}}'
 ```
 
 ### Atualizar dados
 ```bash
-curl -X PUT http://localhost:8000/tables/USUARIOS \
+curl -X PUT https://api-rest-fcerta.onrender.com/tables/FC07000 \
   -H "Content-Type: application/json" \
   -d '{
-    "data": {"nome": "João Silva"},
-    "where_clause": "id = ?",
+    "data": {"EMAIL": "joao.silva@email.com"},
+    "where_clause": "CDCLI = ?",
     "where_params": [1]
   }'
 ```
 
 ### Deletar dados
 ```bash
-curl -X DELETE http://localhost:8000/tables/USUARIOS \
+curl -X DELETE https://api-rest-fcerta.onrender.com/tables/FC07000 \
   -H "Content-Type: application/json" \
   -d '{
-    "where_clause": "id = ?",
+    "where_clause": "CDCLI = ?",
     "where_params": [1]
   }'
 ```
 
 ### Status do banco
 ```bash
-curl http://localhost:8000/db/status
+curl https://api-rest-fcerta.onrender.com/db/status
 ```
 
 ## Segurança

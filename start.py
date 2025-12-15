@@ -23,9 +23,9 @@ def try_fastapi():
         
         # Lista de aplicações para tentar
         apps_to_try = [
-            ('main_simple_fallback', 'Versão simples com fallback'),
+            ('main', 'Versão principal'),
             ('main_with_fallback', 'Versão com fallback'),
-            ('main', 'Versão principal')
+            ('main_simple_fallback', 'Versão simples com fallback')
         ]
         
         for module_name, description in apps_to_try:
@@ -80,8 +80,8 @@ def try_gunicorn():
         
         # Tenta diferentes aplicações
         apps_to_try = [
-            'main_with_fallback:app',
-            'main:app'
+            'main:app',
+            'main_with_fallback:app'
         ]
         
         for app_module in apps_to_try:
