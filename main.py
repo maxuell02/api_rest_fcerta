@@ -6,6 +6,7 @@ from database import FirebirdDatabase
 import os
 import re
 from typing import Any
+import socket
 
 app = FastAPI(
     title="Firebird Database API",
@@ -274,6 +275,18 @@ async def db_status():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Falha na conexão: {str(e)}")
 
+@app.get("/db/ping")
+async def db_ping(timeout: Optional[float] = 5.0):
+    """Teste de rede: tenta abrir socket no host/porta do banco (sem autenticar)"""
+    host = os.getenv("DATABASE_HOST")
+    port = int(os.getenv("DATABASE_PORT", 3050))
+    if not host:
+        raise HTTPException(status_code=400, detail="DATABASE_HOST não configurado")
+    try:
+        with socket.create_connection((host, port), timeout=float(timeout or 5.0)):
+            return {"reachable": True, "host": host, "port": port, "timeout": timeout}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Inacessível: {host}:{port} - {str(e)}")
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))

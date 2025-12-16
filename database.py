@@ -1,4 +1,11 @@
-import fdb
+try:
+    import fdb
+except Exception:
+    fdb = None
+try:
+    import firebirdsql
+except Exception:
+    firebirdsql = None
 import os
 import re
 from typing import List, Dict, Any, Optional
@@ -14,41 +21,83 @@ class FirebirdDatabase:
         self.password = os.getenv('DATABASE_PASSWORD')
         self.port = int(os.getenv('DATABASE_PORT', 3050))
         self.charset = os.getenv('DATABASE_CHARSET', 'WIN1252')
+        self._driver = None  # 'fdb' ou 'firebirdsql'
         
     def get_connection(self):
         """Estabelece conexão com o banco Firebird"""
         try:
             dsn = f"{self.host}/{self.port}:{self.database_path}"
             
-            # Primeiro tenta com o charset configurado
-            try:
-                connection = fdb.connect(
-                    dsn=dsn,
-                    user=self.username,
-                    password=self.password,
-                    charset=self.charset
-                )
-                return connection
-            except Exception:
-                # Se falhar, tenta outros charsets comuns
-                charsets_fallback = ['WIN1252', 'ISO8859_1', 'UTF8', 'NONE']
-                
-                for charset in charsets_fallback:
-                    if charset == self.charset:  # Já tentou
-                        continue
+            # Tenta com FDB primeiro, se disponível
+            if fdb is not None:
+                try:
+                    connection = fdb.connect(
+                        dsn=dsn,
+                        user=self.username,
+                        password=self.password,
+                        charset=self.charset
+                    )
+                    self._driver = 'fdb'
+                    return connection
+                except Exception as e_fdb:
+                    # Se falhar por falta de fbclient, tenta fallback
+                    err = str(e_fdb).lower()
+                    needs_fbclient = ('fbclient' in err) or ('gds32' in err) or ('library' in err)
+                    if not needs_fbclient:
+                        # Tenta outros charsets com FDB
+                        charsets_fallback = ['WIN1252', 'ISO8859_1', 'UTF8', 'NONE']
+                        for charset in charsets_fallback:
+                            if charset == self.charset:
+                                continue
+                            try:
+                                connection = fdb.connect(
+                                    dsn=dsn,
+                                    user=self.username,
+                                    password=self.password,
+                                    charset=charset
+                                )
+                                self._driver = 'fdb'
+                                print(f"⚠️  Usando charset fallback: {charset}")
+                                return connection
+                            except Exception:
+                                continue
+                    # Continua para tentar firebirdsql abaixo
+            
+            # Fallback: tentar firebirdsql (driver puro Python)
+            if firebirdsql is not None:
+                try:
+                    connection = firebirdsql.connect(
+                        host=self.host,
+                        database=self.database_path,
+                        user=self.username,
+                        password=self.password,
+                        port=self.port,
+                        charset=self.charset
+                    )
+                    self._driver = 'firebirdsql'
+                    return connection
+                except Exception as e_fbsql:
+                    # Tenta charsets alternativos
+                    charsets_fallback = ['WIN1252', 'ISO8859_1', 'UTF8', 'NONE']
                     try:
-                        connection = fdb.connect(
-                            dsn=dsn,
-                            user=self.username,
-                            password=self.password,
-                            charset=charset
-                        )
-                        print(f"⚠️  Usando charset fallback: {charset}")
-                        return connection
+                        for charset in charsets_fallback:
+                            if charset == self.charset:
+                                continue
+                            connection = firebirdsql.connect(
+                                host=self.host,
+                                database=self.database_path,
+                                user=self.username,
+                                password=self.password,
+                                port=self.port,
+                                charset=charset
+                            )
+                            self._driver = 'firebirdsql'
+                            print(f"⚠️  Usando charset fallback (firebirdsql): {charset}")
+                            return connection
                     except Exception:
-                        continue
-                
-                raise Exception("Não foi possível conectar com nenhum charset")
+                        pass
+            
+            raise Exception("Não foi possível conectar com nenhum driver (fdb/firebirdsql) e charset")
                     
         except Exception as e:
             raise Exception(f"Erro ao conectar com o banco: {str(e)}")

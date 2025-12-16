@@ -89,7 +89,7 @@ Build Command: pip install --upgrade pip && pip install --no-cache-dir -r requir
 Start Command: python start.py
 
 Environment Variables:
-DATABASE_HOST = 25.90.252.41
+DATABASE_HOST = gaia.zapto.org
 DATABASE_PATH = D:\sistemas\fcerta\DB\ALTERDB.ib
 DATABASE_USERNAME = SYSDBA
 DATABASE_PASSWORD = masterkey
@@ -143,6 +143,17 @@ Após iniciar a API, acesse:
 - Reimplante para aplicar dependências e o novo `start.py` que prioriza `main`.
 - Garanta que o `DATABASE_HOST` é público (não `25.x`) e com porta `3050` aberta.
 - Valide com `GET /db/status`; deve retornar `database: "connected"` usando modo real.
+ 
+### Remover Hamachi e conectar direto
+- Substitua `DATABASE_HOST=25.x.x.x` por um IP público ou DNS do servidor Firebird.
+- No servidor Firebird (Windows):
+  - Abra a porta `3050/TCP` no Firewall do Windows (Inbound Rule).
+  - Se houver roteador/edge firewall, faça NAT/Port Forward `3050 -> host Firebird`.
+  - Verifique serviço ativo: `Firebird Server` rodando.
+  - Firebird.conf: `RemoteServicePort = 3050` (padrão) e `RemoteBindAddress` vazio ou `0.0.0.0`.
+- Teste conectividade:
+  - De fora da rede: `telnet <host> 3050` ou `Test-NetConnection <host> -Port 3050`.
+  - Na API: `GET https://api-rest-fcerta.onrender.com/db/ping` deve retornar `reachable: true`.
 
 #### Exemplos com a URL do Render
 ```bash
